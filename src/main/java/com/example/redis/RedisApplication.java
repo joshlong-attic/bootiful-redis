@@ -26,18 +26,28 @@ import org.springframework.data.redis.core.index.Indexed;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.SessionAttributes;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
+import static com.example.redis.RedisApplication.generateId;
 
 @SpringBootApplication
 public class RedisApplication {
+
+	static Long generateId() {
+		var tmp = new Random().nextLong();
+		return Math.max(tmp, tmp * -1);
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(RedisApplication.class, args);
@@ -45,11 +55,41 @@ public class RedisApplication {
 }
 
 //
+@Log4j2
 @Controller
+@SessionAttributes("cart")
+@EnableRedisHttpSession
 class HttpSessionConfig {
 
-	
+	@ModelAttribute("cart")
+	ShoppingCart cart() {
+		return new ShoppingCart();
+	}
 
+	@GetMapping("/orders")
+	String orders(@ModelAttribute("cart") ShoppingCart cart, Model model) {
+
+		cart.newOrder(new Order(RedisApplication.generateId(),
+			new Date(), Collections.emptyList()));
+
+		model.addAttribute("orders", cart.getOrders());
+		return "orders";
+	}
+
+}
+
+@Component
+class ShoppingCart implements Serializable {
+
+	private final Set<Order> orders = new HashSet<>();
+
+	void newOrder(Order order) {
+		this.orders.add(order);
+	}
+
+	Collection<Order> getOrders() {
+		return this.orders;
+	}
 }
 
 //
@@ -63,7 +103,7 @@ class RepositoryConfig {
 
 	@EventListener(ApplicationReadyEvent.class)
 	void repositories() {
-		var orderId = this.generateId();
+		var orderId = generateId();
 		var items = List.of(
 			new LineItem(orderId, generateId(), "plunger"),
 			new LineItem(orderId, generateId(), "soup"),
@@ -78,10 +118,7 @@ class RepositoryConfig {
 		orders.forEach(log::info);
 	}
 
-	private Long generateId() {
-		var tmp = new Random().nextLong();
-		return Math.max(tmp, tmp * -1);
-	}
+
 }
 
 @Data
