@@ -54,7 +54,7 @@ public class RedisApplication {
 	}
 }
 
-//
+// HTTP sessions
 @Log4j2
 @Controller
 @SessionAttributes("cart")
@@ -92,7 +92,7 @@ class ShoppingCart implements Serializable {
 	}
 }
 
-//
+// repositories
 @Configuration
 @Log4j2
 @RequiredArgsConstructor
@@ -161,7 +161,7 @@ interface OrderRepository extends CrudRepository<Order, Long> {
 	Collection<Order> findByWhen(Date when);
 }
 
-//
+// geospatial queries
 @Log4j2
 @Configuration
 @RequiredArgsConstructor
@@ -186,6 +186,7 @@ class GeographyConfig {
 	}
 }
 
+// caching
 @Log4j2
 @Configuration
 @EnableCaching
